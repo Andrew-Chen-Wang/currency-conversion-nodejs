@@ -1,0 +1,44 @@
+{
+  "name": "currency-converted-data",
+  "version": "1.0.0",
+  "description": "TypeScript package providing daily updated currency conversion rates",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "format": "biome format --write .",
+    "lint": "biome lint .",
+    "check": "biome check --apply .",
+    "prepare": "husky install",
+    "prepublishOnly": "pnpm build"
+  },
+  "keywords": [
+    "currency",
+    "conversion",
+    "exchange-rate",
+    "typescript"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Andrew-Chen-Wang/currency-converted-data-nodejs.git"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/node": "^20.11.17",
+    "husky": "^9.0.11",
+    "lint-staged": "^15.2.2",
+    "typescript": "^5.3.3"
+  },
+  "lint-staged": {
+    "*.{js,ts}": [
+      "biome check --apply",
+      "biome format --write"
+    ]
+  }
+}
