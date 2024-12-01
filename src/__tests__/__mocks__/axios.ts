@@ -1,8 +1,9 @@
 const mockRates = {
-  "EUR / USD": 1.0922,
-  "USD / EUR": 0.9156,
-  "GBP / USD": 1.2641,
-  "USD / GBP": 0.7911,
+  "EUR/USD": 1.0922,
+  "USD/EUR": 0.9156,
+  "GBP/USD": 1.2641,
+  "USD/GBP": 0.7911,
+  "USD/USD": 1.0,
 };
 
 const mockRelease = {
