@@ -1,4 +1,5 @@
-import { Currency, CurrencyRate, CurrencyRatesData } from "./types";
+import axios from "axios";
+import { type Currency, CurrencyRate, type CurrencyRatesData } from "./types";
 
 let currencyRates: CurrencyRatesData | null = null;
 
@@ -10,10 +11,9 @@ async function loadLatestRates(): Promise<void> {
   if (currencyRates) return;
 
   try {
-    const response = await fetch(
+    const { data: release } = await axios.get(
       "https://api.github.com/repos/Andrew-Chen-Wang/currency-conversions/releases/latest"
     );
-    const release = await response.json();
 
     // Find the currency-rates.json asset
     const ratesAsset = release.assets.find(
@@ -24,10 +24,11 @@ async function loadLatestRates(): Promise<void> {
       throw new Error("Currency rates asset not found in latest release");
     }
 
-    const ratesResponse = await fetch(ratesAsset.browser_download_url);
-    currencyRates = await ratesResponse.json();
-  } catch (error) {
-    throw new Error(`Failed to load currency rates: ${error.message}`);
+    const { data: rates } = await axios.get(ratesAsset.browser_download_url);
+    currencyRates = rates;
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to load currency rates: ${message}`);
   }
 }
 
