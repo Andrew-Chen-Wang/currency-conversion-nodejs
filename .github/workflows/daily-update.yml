@@ -1,0 +1,98 @@
+name: Daily Currency Data Update
+
+on:
+  schedule:
+    # Run at 23:00 UTC every day (1 hour before currency-conversions update)
+    - cron: '0 23 * * *'
+  workflow_dispatch:  # Allow manual trigger for testing
+
+jobs:
+  update-currency-data:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Fetch latest currency rates
+        run: |
+          # Get latest release data
+          RELEASE_DATA=$(curl -s https://api.github.com/repos/Andrew-Chen-Wang/currency-conversions/releases/latest)
+
+          # Extract asset URL and download JSON
+          ASSET_URL=$(echo "$RELEASE_DATA" | jq -r '.assets[] | select(.name=="currency-rates.json") | .browser_download_url')
+          curl -s -L "$ASSET_URL" -o src/currency-rates.json
+
+          # Extract unique currencies and update enum
+          CURRENCIES=$(jq -r 'keys[]' src/currency-rates.json | sed 's/\/.*//' | sort -u | jq -R -s -c 'split("\n")[:-1]')
+
+          # Create new types.ts with updated enum
+          cat > src/types.ts << 'EOL'
+/**
+ * Represents all supported currency codes.
+ * This enum is automatically updated daily based on the latest currency data.
+ */
+export enum Currency {
+EOL
+
+          # Add each currency to the enum
+          echo "$CURRENCIES" | jq -r '.[]' | while read -r currency; do
+            echo "  $currency = \"$currency\"," >> src/types.ts
+          done
+
+          # Add the rest of types.ts content
+          cat >> src/types.ts << 'EOL'
+}
+
+/**
+ * Represents a currency conversion rate between two currencies.
+ */
+export interface CurrencyRate {
+  from: Currency;
+  to: Currency;
+  rate: number;
+}
+
+/**
+ * Type for the currency rates JSON file format.
+ * Keys are in the format "USD/EUR" (from/to).
+ */
+export type CurrencyRatesData = {
+  [key: string]: number;
+};
+EOL
+
+      - name: Build package
+        run: pnpm build
+
+      - name: Configure Git
+        run: |
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+
+      - name: Commit and push if changed
+        run: |
+          git add src/types.ts src/currency-rates.json
+          git diff --staged --quiet || (git commit -m "chore: update currency data and enum" && git push)
+
+      - name: Update npm package version
+        run: |
+          pnpm version patch -m "chore: release %s with updated currency data"
+          git push --follow-tags
+
+      - name: Publish to npm
+        run: pnpm publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
